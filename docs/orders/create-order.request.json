@@ -1,0 +1,10 @@
+{
+    "orderId": "123",
+    "customerId": "123a-a5c2-44be-4441",
+    "lineItems": [
+        {
+            "productId": "100",
+            "quantity": 10
+        }
+    ]
+}

@@ -8,6 +8,7 @@ import { Construct } from "constructs";
 
 import { NetworkStack } from "./network-stack";
 import { HelloWorldMicroserviceStack } from "./hello-world/microservice-stack";
+import { OrdersMicroserviceStack } from "./orders/microservice-stack";
 import { ObservabilityStack } from "./observability-stack";
 
 /**
@@ -38,7 +39,12 @@ export class MyAwsServerlessKataStack extends cdk.Stack {
     // The code that defines your stack goes here
 
     const observableStacks = [
-      new HelloWorldMicroserviceStack(this, "hello-world-microservice", {
+      // new HelloWorldMicroserviceStack(this, "helloworld-microservice", {
+      //   vpc: networkStack.vpc,
+      //   restApi: restApi,
+      //   authorizer: undefined,
+      // }),
+      new OrdersMicroserviceStack(this, "orders-microservice", {
         vpc: networkStack.vpc,
         restApi: restApi,
         authorizer: undefined,
