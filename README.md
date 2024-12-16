@@ -16,7 +16,7 @@ The `cdk.json` file tells the CDK Toolkit how to execute your app.
 
 # Useful reference
 
-- [The CDK Book][https://www.thecdkbook.com/] is a mine of information.
+- [The CDK Book](https://www.thecdkbook.com/) is a mine of information.
 - [CDK Patterns](https://cdkpatterns.com/) is a great public catalog of reusable CDK patterns for your designing your applications.
 `
 ## How to run
