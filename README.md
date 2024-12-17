@@ -6,8 +6,6 @@ I use [AWS CDK](https://aws.amazon.com/cdk/) as my infrastructure as code tool.
 
 Everything, from the CDK App to Lambda functions, is done in Typescript for convenience - my focus is on architecture patterns, not really the language features. 
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
-
 # Suggested toolbox
 
 - Use Visual Studio Code plus AWS and Typescript extensions.
@@ -16,9 +14,11 @@ The `cdk.json` file tells the CDK Toolkit how to execute your app.
 
 # Useful reference
 
-- [The CDK Book](https://www.thecdkbook.com/) is a mine of information.
+- [Foobar Serverless](https://www.youtube.com/@foobar_codes) has great getting started tutorials for AWS serverless architectures
+- [The Serverless Advocate](https://blog.serverlessadvocate.com/) is an awesome source for information and code with AWS Serverless architectures.
 - [CDK Patterns](https://cdkpatterns.com/) is a great public catalog of reusable CDK patterns for your designing your applications.
-`
+- [The CDK Book](https://www.thecdkbook.com/) is a mine of information.
+
 ## How to run
 
 ```bash
