@@ -73,15 +73,33 @@ export class MyAwsServerlessKataStack extends cdk.Stack {
           "Authorization",
           "X-Api-Key",
         ],
-        allowMethods: ["OPTIONS", "GET", "POST", "PUT", "PATCH", "DELETE"],
         allowCredentials: true,
-        allowOrigins: ["*"],
+        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
       },
+      apiKeySourceType: apigateway.ApiKeySourceType.HEADER,
     });
+
+    const apiKey = new apigateway.ApiKey(this, "ApiKey");
+
+    const usagePlan = new apigateway.UsagePlan(this, "UsagePlan", {
+      name: "My Serverless Kata - Usage Plan",
+      apiStages: [
+        {
+          api,
+          stage: api.deploymentStage,
+        },
+      ],
+    });
+    usagePlan.addApiKey(apiKey);
 
     // 👇 create an Output for the API URL
     new cdk.CfnOutput(this, "apiUrl", {
       value: api.url,
+    });
+
+    new cdk.CfnOutput(this, "apiKey", {
+      value: apiKey.keyArn,
     });
 
     return api;

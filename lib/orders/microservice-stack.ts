@@ -11,6 +11,7 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambda_nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 
 import { jsonSchema } from "../shared/common-utils";
 import { IObservabilityContributor, ObservabilityHelper } from "../shared/common-observability";
@@ -69,10 +70,20 @@ export class OrdersMicroserviceStack extends cdk.NestedStack implements IObserva
   private readonly responseModels: ResponseModels;
   private readonly requestValidator: apigateway.RequestValidator;
 
+  private readonly ordersTable: dynamodb.Table;
+
   constructor(scope: constructs.Construct, id: string, props: OrdersMicroserviceStackProps) {
     super(scope, id, props);
 
-    // All lambda functions are Python 3.9-based and will be hosted in in private subnets inside target VPC.
+    this.ordersTable = new dynamodb.Table(this, 'OrdersTable', {
+      tableName: 'Orders',
+      partitionKey: { name: 'PK', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'SK', type: dynamodb.AttributeType.STRING },
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    });
+
+    // All lambda functions are Nodejs-based and will be hosted in in private subnets inside target VPC.
     this.defaultFunctionSettings = {
       vpc: props.vpc,
       vpcSubnets: {
@@ -83,6 +94,7 @@ export class OrdersMicroserviceStack extends cdk.NestedStack implements IObserva
       // Functions are pretty quick, so this is quite conservative
       timeout: cdk.Duration.seconds(5),
       environment: {
+        ORDERS_TABLE_NAME: this.ordersTable.tableName,
         POWERTOOLS_SERVICE_NAME: "orders",
         POWERTOOLS_LOGGER_LOG_EVENT: "true",
         LOG_LEVEL: "INFO",
@@ -97,7 +109,6 @@ export class OrdersMicroserviceStack extends cdk.NestedStack implements IObserva
       validateRequestBody: true,
       validateRequestParameters: true,
     });
-
 
     this.ordersResource = props.restApi.root.addResource("orders");
     this.createOrderFunction = this.bindCreateOrderFunction(props);
@@ -143,6 +154,8 @@ export class OrdersMicroserviceStack extends cdk.NestedStack implements IObserva
       entry: path.join(__dirname, `./handlers/create-order.ts`),
     });
 
+    this.ordersTable.grantWriteData(createOrderFunction);
+
     // This should be replaced by an OpenAPI schema
     const requestModel = props.restApi.addModel(
       `${functionName}RequestModel`,
@@ -178,8 +191,11 @@ export class OrdersMicroserviceStack extends cdk.NestedStack implements IObserva
       })
     );
 
-    this.ordersResource.addMethod("POST", new apigateway.LambdaIntegration(createOrderFunction, { proxy: true }), {
+    this.ordersResource.addMethod("POST", new apigateway.LambdaIntegration(createOrderFunction, { 
+      proxy: true 
+    }), {
       authorizationType: apigateway.AuthorizationType.NONE,
+      apiKeyRequired: true,
 //      authorizer: props.authorizer,
 
       requestModels: {
