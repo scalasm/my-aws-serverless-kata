@@ -21,8 +21,6 @@ interface ObservabilityStackProps extends cdk.NestedStackProps {
    * A prefix that will be used to name internally creasted resources.
    */
   readonly dashboardName: string;
-
-  readonly restApi: apigateway.RestApi;
 }
 
 /**
@@ -47,10 +45,11 @@ export class ObservabilityStack extends cdk.NestedStack {
       new TextWidget({
         markdown: `
 # ${props.dashboardName} 
-Here you can see all the metrics for the stack resources. These includes@
-* API Gateway (global)
+Here you can see all the metrics for the stack resources. These includes all the resources created in this stack, like:
+* API Gateway
 * Lambda functions
 * DynamoDB tables
+* and more...
 `,
         width: 24,
         height: 3,
@@ -59,46 +58,7 @@ Here you can see all the metrics for the stack resources. These includes@
 
     // Note: sections are contributed by microservices implementing IObservabilityContributor
 
-    // API Gateway (REST API) is shared resource across different microservices
-    // TODO In future we may want to add "resource" dimensions so that we can track errors for
-    // specific microservices.
-    this.dashboard.addWidgets(
-      new TextWidget({
-        markdown: `
-# REST API metrics 
-Peformance metrics for the API Gateway supporting the REST API.
 
-## Metadata
-* name: ${props.restApi.restApiName}
-* Domain name: ${props.restApi.domainName?.domainName}
-`,
-        width: SIZE_FULL_WIDTH,
-        height: 4, // Increase this if you want to avoid vscrolls for long text
-      })
-    );
-
-    this.dashboard.addWidgets(
-      new GraphWidget({
-        title: "APIGateway requests, client errors, and server errors",
-        width: SIZE_FULL_WIDTH,
-        left: [props.restApi.metricCount({ period: STANDARD_RESOLUTION })],
-        right: [
-          props.restApi.metricClientError({ period: STANDARD_RESOLUTION }),
-          props.restApi.metricServerError({ period: STANDARD_RESOLUTION }),
-        ],
-      }),
-      new GraphWidget({
-        title: "APIGateway latency",
-        width: SIZE_FULL_WIDTH,
-        left: [
-          props.restApi.metricLatency({
-            period: STANDARD_RESOLUTION,
-            statistic: "p99",
-            label: "p99 latency",
-          }),
-        ],
-      })
-    );
   }
 
   /**

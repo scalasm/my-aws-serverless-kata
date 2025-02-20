@@ -7,13 +7,13 @@ import * as constructs from "constructs";
 import * as path from 'path';
 
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
-import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
+import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambda_nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 
-import { jsonSchema } from "../shared/common-utils";
 import { IObservabilityContributor, ObservabilityHelper } from "../shared/common-observability";
+import { jsonSchema } from "../shared/common-utils";
 
 /**
  * Configuration properties for the the this Microservice.
@@ -23,10 +23,6 @@ export interface HelloWorldMicroserviceStackProps extends cdk.NestedStackProps {
    * Target VPC where lambda functions and other resources will be created.
    */
   readonly vpc: ec2.IVpc;
-  /**
-   * Target API Gateway REST API under which the resources will be created.
-   */
-  readonly restApi: apigateway.RestApi;
 
   /**
    * Authorizer for API calls - if endpoints are to be protected, this is the authorizer to use.
@@ -67,6 +63,8 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
 
   private readonly helloWorldFunction: lambda.IFunction;
 
+  private readonly restApi: apigateway.RestApi
+
   private readonly responseModels: ResponseModels;
 
   constructor(scope: constructs.Construct, id: string, props: HelloWorldMicroserviceStackProps) {
@@ -79,7 +77,7 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
         subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
       },
       runtime: lambda.Runtime.NODEJS_18_X,
-      memorySize: 128,
+      memorySize: 256,
       // Functions are pretty quick, so this is quite conservative
       timeout: cdk.Duration.seconds(5),
       environment: {
@@ -89,10 +87,59 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
       }
     };
 
+    this.restApi = this.buildRestApi();
+
     this.responseModels = this.initializeSharedResponseModels(props);
 
-    this.helloWorldResource = props.restApi.root.addResource("helloworld");
+    this.helloWorldResource = this.restApi.root.addResource("helloworld");
     this.helloWorldFunction = this.bindHelloWorldFunction(props);
+  }
+
+  private buildRestApi(): apigateway.RestApi {
+    const api = new apigateway.RestApi(this, "api", {
+      restApiName: "Hellow World - REST API",
+      description: "Hellow World - REST API",
+      deployOptions: {
+        stageName: "dev",
+      },
+      // 👇 enable CORS
+      defaultCorsPreflightOptions: {
+        allowHeaders: [
+          "Content-Type",
+          "X-Amz-Date",
+          "Authorization",
+          "X-Api-Key",
+        ],
+        allowCredentials: true,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+      },
+      apiKeySourceType: apigateway.ApiKeySourceType.HEADER,
+    });
+
+    const apiKey = new apigateway.ApiKey(this, "ApiKey");
+
+    const usagePlan = new apigateway.UsagePlan(this, "UsagePlan", {
+      name: "My Serverless Kata - Usage Plan",
+      apiStages: [
+        {
+          api,
+          stage: api.deploymentStage,
+        },
+      ],
+    });
+    usagePlan.addApiKey(apiKey);
+
+    // 👇 create an Output for the API URL
+    new cdk.CfnOutput(this, "apiUrl", {
+      value: api.url,
+    });
+
+    new cdk.CfnOutput(this, "apiKey", {
+      value: apiKey.keyArn,
+    });
+
+    return api;
   }
 
   public contributeWidgets(dashboard: cloudwatch.Dashboard): void {
@@ -105,7 +152,7 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
   }
 
   private initializeSharedResponseModels(props: HelloWorldMicroserviceStackProps): ResponseModels {
-    const helloWorldResponseModel = props.restApi.addModel(
+    const helloWorldResponseModel = this.restApi.addModel(
       "HelloWorldResponseModel",
       jsonSchema({
         modelName: "HelloWorldResponseModel",
@@ -116,7 +163,7 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
       })
     );
 
-    const http404NotFoundResponseModel = props.restApi.addModel(
+    const http404NotFoundResponseModel = this.restApi.addModel(
       "Http404ResponseModel",
       jsonSchema({
         modelName: "Http404ResponseModel",
@@ -141,7 +188,7 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
     });
 
     // POST /u
-    const requestModel = props.restApi.addModel(
+    const requestModel = this.restApi.addModel(
       "HelloWorldRequestModel",
       jsonSchema({
         modelName: "HelloWorldRequestModel",
@@ -153,7 +200,7 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
     );
 
     const requestValidator = new apigateway.RequestValidator(this, "HelloWorldRequestValidator", {
-      restApi: props.restApi,
+      restApi: this.restApi,
       requestValidatorName: "Validate Payload and parameters",
       validateRequestBody: true,
       validateRequestParameters: true,
