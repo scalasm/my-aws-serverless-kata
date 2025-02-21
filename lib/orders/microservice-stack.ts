@@ -24,10 +24,6 @@ export interface OrdersMicroserviceStackProps extends cdk.NestedStackProps {
    * Target VPC where lambda functions and other resources will be created.
    */
   readonly vpc: ec2.IVpc;
-  /**
-   * Target API Gateway REST API under which the resources will be created.
-   */
-  readonly restApi: apigateway.RestApi;
 
   /**
    * Authorizer for API calls - if endpoints are to be protected, this is the authorizer to use.
@@ -64,6 +60,10 @@ export class OrdersMicroserviceStack extends cdk.NestedStack implements IObserva
   private readonly ordersResource: apigateway.Resource;
 
   private readonly defaultFunctionSettings: DefaultLambdaSettings;
+  /**
+   * Target API Gateway REST API under which the resources will be created.
+   */
+  readonly restApi: apigateway.RestApi;
 
   private readonly createOrderFunction: lambda.IFunction;
 
@@ -101,17 +101,66 @@ export class OrdersMicroserviceStack extends cdk.NestedStack implements IObserva
       }
     };
 
+    this.restApi = this.buildRestApi();
+
     this.responseModels = this.initializeSharedResponseModels(props);
     // We validate input parameters and payload
     this.requestValidator = new apigateway.RequestValidator(this, "OrdersRequestValidator", {
-      restApi: props.restApi,
+      restApi: this.restApi,
       requestValidatorName: "Validate Payload and parameters",
       validateRequestBody: true,
       validateRequestParameters: true,
     });
 
-    this.ordersResource = props.restApi.root.addResource("orders");
+    this.ordersResource = this.restApi.root.addResource("orders");
     this.createOrderFunction = this.bindCreateOrderFunction(props);
+  }
+
+  private buildRestApi(): apigateway.RestApi {
+    const api = new apigateway.RestApi(this, "api", {
+      restApiName: "Orders - REST API",
+      description: "Orders - REST API",
+      deployOptions: {
+        stageName: "dev",
+      },
+      // 👇 enable CORS
+      defaultCorsPreflightOptions: {
+        allowHeaders: [
+          "Content-Type",
+          "X-Amz-Date",
+          "Authorization",
+          "X-Api-Key",
+        ],
+        allowCredentials: true,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+      },
+      apiKeySourceType: apigateway.ApiKeySourceType.HEADER,
+    });
+
+    const apiKey = new apigateway.ApiKey(this, "ApiKey");
+
+    const usagePlan = new apigateway.UsagePlan(this, "UsagePlan", {
+      name: "My Serverless Kata - Usage Plan",
+      apiStages: [
+        {
+          api,
+          stage: api.deploymentStage,
+        },
+      ],
+    });
+    usagePlan.addApiKey(apiKey);
+
+    // 👇 create an Output for the API URL
+    new cdk.CfnOutput(this, "apiUrl", {
+      value: api.url,
+    });
+
+    new cdk.CfnOutput(this, "apiKey", {
+      value: apiKey.keyArn,
+    });
+
+    return api;
   }
 
   public contributeWidgets(dashboard: cloudwatch.Dashboard): void {
@@ -130,7 +179,7 @@ export class OrdersMicroserviceStack extends cdk.NestedStack implements IObserva
    */
   private initializeSharedResponseModels(props: OrdersMicroserviceStackProps): ResponseModels {
     // Only 404 but it is not useful for now
-    const http404NotFoundResponseModel = props.restApi.addModel(
+    const http404NotFoundResponseModel = this.restApi.addModel(
       "Http404ResponseModel",
       jsonSchema({
         modelName: "Http404ResponseModel",
@@ -157,7 +206,7 @@ export class OrdersMicroserviceStack extends cdk.NestedStack implements IObserva
     this.ordersTable.grantWriteData(createOrderFunction);
 
     // This should be replaced by an OpenAPI schema
-    const requestModel = props.restApi.addModel(
+    const requestModel = this.restApi.addModel(
       `${functionName}RequestModel`,
       jsonSchema({
       modelName: `${functionName}RequestModel`,
@@ -179,7 +228,7 @@ export class OrdersMicroserviceStack extends cdk.NestedStack implements IObserva
       })
     );
 
-    const responseModel = props.restApi.addModel(
+    const responseModel = this.restApi.addModel(
       `${functionName}ResponseModel`,
       jsonSchema({
       modelName: `${functionName}ResponseModel`,

@@ -12,6 +12,7 @@ import {
 } from "aws-cdk-lib/aws-cloudwatch";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as ddb from "aws-cdk-lib/aws-dynamodb";
+import * as apigateway from "aws-cdk-lib/aws-apigateway";
 
 /**
  * Half horizontal screen space within a Cloudwatch dashboard space.
@@ -78,6 +79,13 @@ export interface LambdaFunctionSectionProps extends BaseSectionProps {
  */
 export interface DynamoDBTableSectionProps extends BaseSectionProps {
   readonly table: ddb.Table;
+}
+
+/**
+ * Configuration properties for Cloudwatch section about a REST API implemented on the API Gateway.
+ */
+export interface ApiGatewayRESTApiProps extends BaseSectionProps {
+  readonly restApi: apigateway.RestApi;
 }
 
 /**
@@ -186,6 +194,52 @@ ${description}
           }),
           props.table.metricConsumedWriteCapacityUnits({
             period: STANDARD_RESOLUTION,
+          }),
+        ],
+      })
+    );
+  }
+
+  public createApiGatewayRestApiSection(props: ApiGatewayRESTApiProps): void {
+    const description =
+      props.description || "Peformance metrics for the API Gateway supporting the REST API.";
+
+    // API Gateway (REST API) is shared resource across different microservices
+    // TODO In future we may want to add "resource" dimensions so that we can track errors for
+    // specific microservices.
+    this.dashboard.addWidgets(
+      new TextWidget({
+        markdown: `
+# REST API metrics 
+${description}
+
+## Metadata
+* name: ${props.restApi.restApiName}
+* Domain name: ${props.restApi.domainName?.domainName}
+`,
+        width: SIZE_FULL_WIDTH,
+        height: 4, // Increase this if you want to avoid vscrolls for long text
+      })
+    );
+
+    this.dashboard.addWidgets(
+      new GraphWidget({
+        title: "APIGateway requests, client errors, and server errors",
+        width: SIZE_FULL_WIDTH,
+        left: [props.restApi.metricCount({ period: STANDARD_RESOLUTION })],
+        right: [
+          props.restApi.metricClientError({ period: STANDARD_RESOLUTION }),
+          props.restApi.metricServerError({ period: STANDARD_RESOLUTION }),
+        ],
+      }),
+      new GraphWidget({
+        title: "APIGateway latency",
+        width: SIZE_FULL_WIDTH,
+        left: [
+          props.restApi.metricLatency({
+            period: STANDARD_RESOLUTION,
+            statistic: "p99",
+            label: "p99 latency",
           }),
         ],
       })
