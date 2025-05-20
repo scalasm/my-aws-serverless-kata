@@ -22,7 +22,18 @@
     "strictPropertyInitialization": false,
     "typeRoots": [
       "./node_modules/@types"
-    ]
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@adapters/*": ["./stateless/src/adapters/*"],
+      "@config/*": ["./src/config/*"],
+      "@dto/*": ["./stateless/src/dto/*"],
+      "@errors/*": ["./stateless/src/errors/*"],
+      "@events/*": ["./stateless/src/events/*"],
+      "@schemas/*": ["./stateless/src/schemas/*"],
+      "@shared/*": ["./stateless/src/shared/*"],
+      "@usecases/*": ["./stateless/src/use-cases/*"],
+    }
   },
   "exclude": [
     "node_modules",
