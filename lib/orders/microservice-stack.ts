@@ -89,7 +89,7 @@ export class OrdersMicroserviceStack extends cdk.NestedStack implements IObserva
       vpcSubnets: {
         subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
       },
-      runtime: lambda.Runtime.NODEJS_18_X,
+      runtime: lambda.Runtime.NODEJS_20_X,
       memorySize: 256,
       // Functions are pretty quick, so this is quite conservative
       timeout: cdk.Duration.seconds(5),
