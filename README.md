@@ -16,11 +16,13 @@ Everything, from the CDK App to Lambda functions, is done in Typescript for conv
 
 - [Foobar Serverless](https://www.youtube.com/@foobar_codes) has great getting started tutorials for AWS serverless architectures
 - [The Serverless Advocate](https://blog.serverlessadvocate.com/) is an awesome source for information and code with AWS Serverless architectures.
+  - [Serverless Lightweight Clean Code Approach](https://blog.serverlessadvocate.com/serverless-lightweight-clean-code-approach-84133c90eeeb)
 - REST API with AWS CDK by Coner Murphy
   - [How to Build a REST API With the AWS CDK Using API Gateway, Lambda, and Dynamodb With API Key Authentication](https://conermurphy.com/blog/build-rest-api-aws-cdk-api-gateway-lambda-dynamodb-api-key-authentication)
   - [Automatically Create an AWS API Gateway REST API and Related TypeScript Types via an OpenAPI Specification and AWS CDK](https://conermurphy.com/blog/create-aws-api-gateway-rest-api-typescript-types-via-openapi-aws-cdk)
 - [CDK Patterns](https://cdkpatterns.com/) is a great public catalog of reusable CDK patterns for your designing your applications.
 - [The CDK Book](https://www.thecdkbook.com/) is a mine of information.
+- [Powertools for AWS Lambda](https://docs.powertools.aws.dev/)
 
 ## How to run
 
