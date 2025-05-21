@@ -26,13 +26,17 @@
     "baseUrl": ".",
     "paths": {
       "@adapters/*": ["./stateless/src/adapters/*"],
-      "@config/*": ["./src/config/*"],
-      "@dto/*": ["./stateless/src/dto/*"],
+      "@config/*": ["./stateless/src/config/*"],
+      "@domain/*": ["./stateless/src/domain/*"],
+      "@entity/*": ["./stateless/src/entity/*"],
       "@errors/*": ["./stateless/src/errors/*"],
-      "@events/*": ["./stateless/src/events/*"],
       "@schemas/*": ["./stateless/src/schemas/*"],
       "@shared/*": ["./stateless/src/shared/*"],
-      "@usecases/*": ["./stateless/src/use-cases/*"],
+      "@models/*": ["stateless/src/models/*"],
+      "@dto/*": ["stateless/src/dto/*"],
+      "@use-cases/*": ["./stateless/src/use-cases/*"],
+      "@packages/*": ["./packages/*"],
+      "@events/*": ["stateless/src/events/*"]
     }
   },
   "exclude": [
