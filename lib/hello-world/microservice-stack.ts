@@ -34,7 +34,6 @@ export interface HelloWorldMicroserviceStackProps extends cdk.NestedStackProps {
  * A simple way for grouping the different response models used within this microservice stack.
  */
 interface ResponseModels {
-  readonly helloWorldResponseModel: apigateway.Model;
   readonly http404NotFoundResponseModel: apigateway.Model;
 }
 
@@ -151,17 +150,6 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
   }
 
   private initializeSharedResponseModels(props: HelloWorldMicroserviceStackProps): ResponseModels {
-    const helloWorldResponseModel = this.restApi.addModel(
-      "HelloWorldResponseModel",
-      jsonSchema({
-        modelName: "HelloWorldResponseModel",
-        properties: {
-          message: { type: apigateway.JsonSchemaType.STRING }
-        },
-        requiredProperties: ["message"],
-      })
-    );
-
     const http404NotFoundResponseModel = this.restApi.addModel(
       "Http404ResponseModel",
       jsonSchema({
@@ -174,7 +162,6 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
     );
 
     return {
-      helloWorldResponseModel: helloWorldResponseModel,
       http404NotFoundResponseModel,
     };
   }
@@ -182,19 +169,30 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
   private bindHelloWorldFunction(props: HelloWorldMicroserviceStackProps): lambda.Function {
     const helloWorldFunction = new lambda_nodejs.NodejsFunction(this, 'hello-world-function', {
       ...this.defaultFunctionSettings,
+      POWERTOOLS_SERVICE_NAME: 'SayHelloWorldLambda',
       handler: 'main',
       entry: path.join(__dirname, `./adapters/primary/say-hello-world.adapter.ts`),
     });
 
-    // POST /u
     const requestModel = this.restApi.addModel(
-      "HelloWorldRequestModel",
+      "SayHelloWorldRequestModel",
       jsonSchema({
-        modelName: "HelloWorldRequestModel",
+        modelName: "SayHelloWorldRequestModel",
         properties: {
           name: { type: apigateway.JsonSchemaType.STRING },
         },
         requiredProperties: ["name"],
+      })
+    );
+
+    const responseModel = this.restApi.addModel(
+      "SayHelloWorldResponseModel",
+      jsonSchema({
+        modelName: "SayHelloWorldResponseModel",
+        properties: {
+          message: { type: apigateway.JsonSchemaType.STRING }
+        },
+        requiredProperties: ["message"],
       })
     );
 
@@ -217,7 +215,7 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
         {
           statusCode: "200",
           responseModels: {
-            "application/json": this.responseModels.helloWorldResponseModel,
+            "application/json": responseModel,
           },
         },
       ],
