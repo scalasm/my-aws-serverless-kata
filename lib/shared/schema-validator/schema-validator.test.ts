@@ -1,23 +1,22 @@
 import { schemaValidator } from './schema-validator';
 
 let body = {
-  firstName: 'Lee',
-  surname: 'Gilmore',
+  who: 'John',
+  age: 25
 };
 
 let schema = {
   type: 'object',
-  required: ['firstName', 'surname'],
+  required: ['who', 'age'],
   maxProperties: 2,
   minProperties: 2,
   properties: {
-    firstName: {
+    who: {
       type: 'string',
       pattern: '^[a-zA-Z]+$',
     },
-    surname: {
-      type: 'string',
-      pattern: '^[a-zA-Z]+$',
+    age: {
+      type: 'integer'
     },
   },
 };
@@ -30,7 +29,19 @@ describe('schema-validator', () => {
   it('should throw an error if the schema is invalid', () => {
     const badBody = {
       ...body,
-      firstName: null,
+      who: null // Invalid target name, should be a non empfty string string
+    };
+    expect(() =>
+      schemaValidator(schema, badBody)
+    ).toThrowErrorMatchingInlineSnapshot(
+      `"[{\\"instancePath\\":\\"/who\\",\\"schemaPath\\":\\"#/properties/firstName/type\\",\\"keyword\\":\\"type\\",\\"params\\":{\\"type\\":\\"string\\"},\\"message\\":\\"must be string\\"}]"`
+    );
+  });
+
+  it('should throw an error if the schema is invalid', () => {
+    const badBody = {
+      ...body,
+      age: 2.5 // Invalid age, should be an integer
     };
     expect(() =>
       schemaValidator(schema, badBody)

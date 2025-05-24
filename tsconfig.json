@@ -25,18 +25,10 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@adapters/*": ["./stateless/src/adapters/*"],
-      "@config/*": ["./stateless/src/config/*"],
-      "@domain/*": ["./stateless/src/domain/*"],
-      "@entity/*": ["./stateless/src/entity/*"],
-      "@errors/*": ["./stateless/src/errors/*"],
-      "@schemas/*": ["./stateless/src/schemas/*"],
-      "@shared/*": ["./stateless/src/shared/*"],
-      "@models/*": ["stateless/src/models/*"],
-      "@dto/*": ["stateless/src/dto/*"],
-      "@use-cases/*": ["./stateless/src/use-cases/*"],
-      "@packages/*": ["./packages/*"],
-      "@events/*": ["stateless/src/events/*"]
+      "@hello-world/*": ["./lib/hello-world/*"],
+      "@config/*": ["./lib/config/*"],
+      "@shared/*": ["./lib/shared/*"],
+      "@common-utils/*": ["./lib/shared/util/*"],
     }
   },
   "exclude": [

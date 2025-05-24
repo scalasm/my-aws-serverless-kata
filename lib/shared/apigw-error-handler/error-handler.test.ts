@@ -1,4 +1,4 @@
-import { ValidationError } from '@errors/validation-error';
+import { ValidationError } from '@shared/errors/validation-error';
 import { errorHandler } from './error-handler';
 import { Logger } from '@aws-lambda-powertools/logger';
 

@@ -12,7 +12,7 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambda_nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 
-import { IObservabilityContributor, ObservabilityHelper } from "../shared/common-observability";
+//import { IObservabilityContributor, ObservabilityHelper } from "@shared/observability";
 import { jsonSchema } from "../shared/common-utils";
 
 /**
@@ -31,21 +31,6 @@ export interface HelloWorldMicroserviceStackProps extends cdk.NestedStackProps {
 }
 
 /**
- * (internal) Typed interface for the shared settings for the lambda functions we use in this microservice.
- */
-interface DefaultLambdaSettings {
-  vpc: cdk.aws_ec2.IVpc;
-  vpcSubnets: {
-    subnetType: cdk.aws_ec2.SubnetType;
-  };
-  runtime: cdk.aws_lambda.Runtime;
-  environment: { [key: string]: string };
-  memorySize: number,
-  // Functions are pretty quick, so this is quite conservative
-  timeout: cdk.Duration;
-}
-
-/**
  * A simple way for grouping the different response models used within this microservice stack.
  */
 interface ResponseModels {
@@ -56,10 +41,10 @@ interface ResponseModels {
 /**
  * Simple HelloWorld Microservice stack that expose a simple function in the most complicated way XD.
  */
-export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObservabilityContributor {
+export class HelloWorldMicroserviceStack extends cdk.NestedStack /*implements IObservabilityContributor*/ {
   private readonly helloWorldResource: apigateway.Resource;
 
-  private readonly defaultFunctionSettings: DefaultLambdaSettings;
+  private readonly defaultFunctionSettings: any;
 
   private readonly helloWorldFunction: lambda.IFunction;
 
@@ -69,6 +54,17 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
 
   constructor(scope: constructs.Construct, id: string, props: HelloWorldMicroserviceStackProps) {
     super(scope, id, props);
+
+    const lambdaPowerToolsConfig = {
+      LOG_LEVEL: 'DEBUG',
+      POWERTOOLS_LOGGER_LOG_EVENT: 'true',
+      POWERTOOLS_LOGGER_SAMPLE_RATE: '1',
+      POWERTOOLS_TRACE_ENABLED: 'enabled',
+      POWERTOOLS_TRACER_CAPTURE_HTTPS_REQUESTS: 'captureHTTPsRequests',
+      POWERTOOLS_SERVICE_NAME: 'HelloService',
+      POWERTOOLS_TRACER_CAPTURE_RESPONSE: 'captureResult',
+      POWERTOOLS_METRICS_NAMESPACE: 'MyAWSKata',
+    };
 
     // All lambda functions are Python 3.9-based and will be hosted in in private subnets inside target VPC.
     this.defaultFunctionSettings = {
@@ -80,22 +76,25 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
       memorySize: 256,
       // Functions are pretty quick, so this is quite conservative
       timeout: cdk.Duration.seconds(5),
+      tracing: lambda.Tracing.ACTIVE,
+      handler: 'handler',
+      bundling: {
+        minify: true,
+        externalModules: ['aws-sdk'],
+      },
       environment: {
-        POWERTOOLS_SERVICE_NAME: "hello-world",
-        POWERTOOLS_LOGGER_LOG_EVENT: "true",
-        LOG_LEVEL: "INFO",
+        ...lambdaPowerToolsConfig
       }
     };
 
-    this.restApi = this.buildRestApi();
-
+    this.restApi = this.buildRestApi(props);
     this.responseModels = this.initializeSharedResponseModels(props);
 
     this.helloWorldResource = this.restApi.root.addResource("helloworld");
     this.helloWorldFunction = this.bindHelloWorldFunction(props);
   }
 
-  private buildRestApi(): apigateway.RestApi {
+  private buildRestApi(props: HelloWorldMicroserviceStackProps): apigateway.RestApi {
     const api = new apigateway.RestApi(this, "api", {
       restApiName: "Hellow World - REST API",
       description: "Hellow World - REST API",
@@ -142,14 +141,14 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
     return api;
   }
 
-  public contributeWidgets(dashboard: cloudwatch.Dashboard): void {
-    const observabilityHelper = new ObservabilityHelper(dashboard);
+  // public contributeWidgets(dashboard: cloudwatch.Dashboard): void {
+  //   const observabilityHelper = new ObservabilityHelper(dashboard);
 
-    observabilityHelper.createLambdaFunctionSection({
-      function: this.helloWorldFunction,
-      descriptiveName: "Say Hello to the World!",
-    });
-  }
+  //   observabilityHelper.createLambdaFunctionSection({
+  //     function: this.helloWorldFunction,
+  //     descriptiveName: "Say Hello to the World!",
+  //   });
+  // }
 
   private initializeSharedResponseModels(props: HelloWorldMicroserviceStackProps): ResponseModels {
     const helloWorldResponseModel = this.restApi.addModel(
@@ -184,7 +183,7 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
     const helloWorldFunction = new lambda_nodejs.NodejsFunction(this, 'hello-world-function', {
       ...this.defaultFunctionSettings,
       handler: 'main',
-      entry: path.join(__dirname, `./handlers/hello-world.ts`),
+      entry: path.join(__dirname, `./adapters/primary/say-hello-world.adapter.ts`),
     });
 
     // POST /u

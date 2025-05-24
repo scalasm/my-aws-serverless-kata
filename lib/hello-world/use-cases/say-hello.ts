@@ -1,7 +1,7 @@
-import { HelloDto, HelloResponseDto } from "@dto/hello";
+import { HelloRequeestDto, HelloResponseDto } from "@hello-world/dto";
 
 export async function sayHelloUseCase(
-  hello: HelloDto
+  hello: HelloRequeestDto
 ): Promise<HelloResponseDto> {
   return {
     message: "Hello, " + hello.who,

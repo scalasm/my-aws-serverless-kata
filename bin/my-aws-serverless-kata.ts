@@ -2,19 +2,20 @@
 import "source-map-support/register";
 import * as cdk from "aws-cdk-lib";
 import { MyAwsServerlessKataStack } from "../lib/my-aws-serverless-kata-stack";
+import { getEnvironmentConfig } from "@config/environment-config";
+import { getStage, Stage } from "@config/types";
 
-import { MyAwsKataStatefulStack } from '../stateful/stateful';
-import { MyAwsKataStatelessStack } from '../stateless/stateless';
+const stage = getStage(process.env.STAGE as Stage) as Stage;
+const appConfig = getEnvironmentConfig(stage);
 
 const app = new cdk.App();
 
-const statefulStack = new MyAwsKataStatefulStack(
+new MyAwsServerlessKataStack(
   app,
   'MyAwsKataStatefulStack',
-  {}
+  {
+    "env": appConfig.env,
+    "appConfig": appConfig,
+    "description": `My AWS Kata Stateful Stack for stage ${stage}`,
+  }
 );
-
-new MyAwsKataStatelessStack(app, 'MyAwsKataStatefulStackStatelessStack', {
-  accountsTable: statefulStack.helloTable,
-  accountsEventBus: statefulStack.helloEventBus,
-});

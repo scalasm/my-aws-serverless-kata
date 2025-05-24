@@ -9,7 +9,7 @@ import {
   IObservabilityContributor,
   STANDARD_RESOLUTION,
   SIZE_FULL_WIDTH,
-} from "./shared/common-observability";
+} from "@shared/observability";
 
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 
@@ -57,8 +57,6 @@ Here you can see all the metrics for the stack resources. These includes all the
     );
 
     // Note: sections are contributed by microservices implementing IObservabilityContributor
-
-
   }
 
   /**

@@ -1,4 +1,4 @@
-export type HelloDto = {
+export type HelloRequeestDto = {
   who: string;
 };
 

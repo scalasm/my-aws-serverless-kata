@@ -7,8 +7,8 @@ import { Construct } from "constructs";
 
 import { NetworkStack } from "./network-stack";
 import { ObservabilityStack } from "./observability-stack";
-import { OrdersMicroserviceStack } from "./orders/microservice-stack";
 import { HelloWorldMicroserviceStack } from "./hello-world/microservice-stack";
+import { EnvironmentConfig } from "@config/environment-config";
 
 /**
  * Configuration properties.
@@ -17,7 +17,7 @@ export interface MyAwsServerlessKataStackProps extends cdk.StackProps {
   /**
    * Stage name for the stack (e.g., "dev", "prod", ...)
    */
-  readonly stage: string;
+  readonly appConfig: EnvironmentConfig;
 }
 
 /**
@@ -41,15 +41,11 @@ export class MyAwsServerlessKataStack extends cdk.Stack {
         vpc: networkStack.vpc,
         authorizer: undefined,
       }),
-      new OrdersMicroserviceStack(this, "orders-microservice", {
-        vpc: networkStack.vpc,
-        authorizer: undefined,
-      }),
     ];
 
-    const observabilityStack = new ObservabilityStack(this, "observability", {
-      dashboardName: `My AWS Kata (${props?.stage})`
-    });
-    observabilityStack.hookDashboardContributions(observableStacks);
+    // const observabilityStack = new ObservabilityStack(this, "observability", {
+    //   dashboardName: `My AWS Kata (${props?.appConfig.shared.stage})`,
+    // });
+//    observabilityStack.hookDashboardContributions(observableStacks);
   }
 }

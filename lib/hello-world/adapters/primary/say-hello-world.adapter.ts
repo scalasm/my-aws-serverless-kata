@@ -11,10 +11,13 @@ import { injectLambdaContext } from '@aws-lambda-powertools/logger/middleware';
 
 import middy from '@middy/core';
 
-import { ValidationError } from '@errors/validation-error';
-import { HelloDto, HelloResponseDto } from '@dto/hello';
-import { sayHelloUseCase } from '@use-cases/hello/say-hello';
-import { errorHandler as handleError } from '@packages/apigw-error-handler';
+import { ValidationError } from '@shared/errors/validation-error';
+import { errorHandler as handleError } from '@shared/apigw-error-handler';
+import { schemaValidator } from '@shared/schema-validator';
+
+import { HelloRequeestDto as HelloRequestDto, HelloResponseDto } from '@hello-world/dto';
+import { sayHelloUseCase } from '@hello-world/use-cases';
+import { schema } from '@hello-world/adapters/primary/say-hello-world.schema';
 
 // Logger parameters fetched from the environment variables:
 const logger = new Logger();
@@ -28,23 +31,21 @@ export const sayHelloAdapter = async ({
 }: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
     if (!body) throw new ValidationError('no Salute body');
-    if (!pathParameters || !pathParameters?.name)
-      throw new ValidationError(
-        'no Name in the path parameters of the event'
-      );
+    // if (!pathParameters || !pathParameters?.name)
+    //   throw new ValidationError(
+    //     'no Name in the path parameters of the event'
+    //   );
+    // const { name } = pathParameters;
 
-    const { name } = pathParameters;
+    const helloRequest: HelloRequestDto = JSON.parse(body);
+    schemaValidator(schema, helloRequest);
 
     logger.info(`Preparing to salute: ${name}!`);
-
-    const hello: HelloDto = JSON.parse(body);
-
-    // schemaValidator(schema, newCustomerPlaylistSong);
-
-    const helloResponse: HelloResponseDto = await sayHelloUseCase( hello );
+    
+    const helloResponse: HelloResponseDto = await sayHelloUseCase( helloRequest );
 
     logger.info(
-      `Saluting ${hello.who} with salute "${helloResponse.message}"`
+      `Saluting ${helloRequest.who} with salute "${helloResponse.message}"`
     );
 
     metrics.addMetric('Salutes', MetricUnit.Count, 1);
