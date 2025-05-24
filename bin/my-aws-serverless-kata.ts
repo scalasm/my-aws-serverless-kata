@@ -2,8 +2,8 @@
 import "source-map-support/register";
 import * as cdk from "aws-cdk-lib";
 import { MyAwsServerlessKataStack } from "../lib/my-aws-serverless-kata-stack";
-import { getEnvironmentConfig } from "@config/environment-config";
-import { getStage, Stage } from "@config/types";
+import { getEnvironmentConfig } from "../lib/config/environment-config";
+import { getStage, Stage } from "../lib/config/types";
 
 const stage = getStage(process.env.STAGE as Stage) as Stage;
 const appConfig = getEnvironmentConfig(stage);

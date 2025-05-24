@@ -12,7 +12,7 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambda_nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 
-//import { IObservabilityContributor, ObservabilityHelper } from "@shared/observability";
+import { IObservabilityContributor, ObservabilityHelper } from "../shared/observability";
 import { jsonSchema } from "../shared/common-utils";
 
 /**
@@ -41,7 +41,7 @@ interface ResponseModels {
 /**
  * Simple HelloWorld Microservice stack that expose a simple function in the most complicated way XD.
  */
-export class HelloWorldMicroserviceStack extends cdk.NestedStack /*implements IObservabilityContributor*/ {
+export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObservabilityContributor {
   private readonly helloWorldResource: apigateway.Resource;
 
   private readonly defaultFunctionSettings: any;
@@ -141,14 +141,14 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack /*implements IO
     return api;
   }
 
-  // public contributeWidgets(dashboard: cloudwatch.Dashboard): void {
-  //   const observabilityHelper = new ObservabilityHelper(dashboard);
+  public contributeWidgets(dashboard: cloudwatch.Dashboard): void {
+    const observabilityHelper = new ObservabilityHelper(dashboard);
 
-  //   observabilityHelper.createLambdaFunctionSection({
-  //     function: this.helloWorldFunction,
-  //     descriptiveName: "Say Hello to the World!",
-  //   });
-  // }
+    observabilityHelper.createLambdaFunctionSection({
+      function: this.helloWorldFunction,
+      descriptiveName: "Say Hello to the World!",
+    });
+  }
 
   private initializeSharedResponseModels(props: HelloWorldMicroserviceStackProps): ResponseModels {
     const helloWorldResponseModel = this.restApi.addModel(

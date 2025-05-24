@@ -8,7 +8,7 @@ import { Construct } from "constructs";
 import { NetworkStack } from "./network-stack";
 import { ObservabilityStack } from "./observability-stack";
 import { HelloWorldMicroserviceStack } from "./hello-world/microservice-stack";
-import { EnvironmentConfig } from "@config/environment-config";
+import { EnvironmentConfig } from "./config/environment-config";
 
 /**
  * Configuration properties.
@@ -43,9 +43,9 @@ export class MyAwsServerlessKataStack extends cdk.Stack {
       }),
     ];
 
-    // const observabilityStack = new ObservabilityStack(this, "observability", {
-    //   dashboardName: `My AWS Kata (${props?.appConfig.shared.stage})`,
-    // });
-//    observabilityStack.hookDashboardContributions(observableStacks);
+    const observabilityStack = new ObservabilityStack(this, "observability", {
+      dashboardName: `My AWS Kata (${props?.appConfig.shared.stage})`,
+    });
+    observabilityStack.hookDashboardContributions(observableStacks);
   }
 }
