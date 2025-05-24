@@ -49,3 +49,4 @@ export class MyAwsServerlessKataStack extends cdk.Stack {
     observabilityStack.hookDashboardContributions(observableStacks);
   }
 }
+  
