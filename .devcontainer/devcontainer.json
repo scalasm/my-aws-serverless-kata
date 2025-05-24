@@ -17,8 +17,7 @@
 		"ghcr.io/joshuanianji/devcontainer-features/aws-cli-persistence:1.0.3": {},
 		"ghcr.io/tomharvey/devcontainer-features/aws-sso-util:1": {
 			"version": "latest"
-		},
-		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+		}
 	},
 
 	// Features to add to the dev container. More info: https://containers.dev/features.

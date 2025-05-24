@@ -170,7 +170,7 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
     const helloWorldFunction = new lambda_nodejs.NodejsFunction(this, 'hello-world-function', {
       ...this.defaultFunctionSettings,
       POWERTOOLS_SERVICE_NAME: 'SayHelloWorldLambda',
-      handler: 'main',
+      handler: 'handler',
       entry: path.join(__dirname, `./adapters/primary/say-hello-world.adapter.ts`),
     });
 
@@ -179,9 +179,9 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
       jsonSchema({
         modelName: "SayHelloWorldRequestModel",
         properties: {
-          name: { type: apigateway.JsonSchemaType.STRING },
+          who: { type: apigateway.JsonSchemaType.STRING },
         },
-        requiredProperties: ["name"],
+        requiredProperties: ["who"],
       })
     );
 

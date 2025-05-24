@@ -1,14 +1,13 @@
 import { Metrics, MetricUnit } from '@aws-lambda-powertools/metrics';
 import { logMetrics } from '@aws-lambda-powertools/metrics/middleware';
 
-import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-
 import { Tracer } from '@aws-lambda-powertools/tracer';
 import { captureLambdaHandler } from '@aws-lambda-powertools/tracer/middleware';
 
 import { Logger } from '@aws-lambda-powertools/logger';
 import { injectLambdaContext } from '@aws-lambda-powertools/logger/middleware';
 
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import middy from '@middy/core';
 
 import { ValidationError } from '@shared/errors/validation-error';
@@ -38,11 +37,11 @@ export const sayHelloAdapter = async ({
     // const { name } = pathParameters;
 
     const helloRequest: HelloRequestDto = JSON.parse(body);
-    schemaValidator(schema, helloRequest);
+//    schemaValidator(schema, helloRequest);
 
-    logger.info(`Preparing to salute: ${name}!`);
+    logger.info(`Preparing to salute: ${helloRequest.who}!`);
     
-    const helloResponse: HelloResponseDto = await sayHelloUseCase( helloRequest );
+    const helloResponse: HelloResponseDto = await sayHelloUseCase(helloRequest);
 
     logger.info(
       `Saluting ${helloRequest.who} with salute "${helloResponse.message}"`

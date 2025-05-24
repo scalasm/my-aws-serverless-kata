@@ -14,9 +14,18 @@ Stack ARN:
 
 ```bash
 export API_URL="https://xxxxxyyyzzz.execute-api.eu-west-1.amazonaws.com/dev/"
+export API_KEY ="<api key you get from below>"
 curl -X POST $API_URL/helloworld \
      -H "Content-Type: application/json" \
-     -d '{"name":"Mario"}'
+     -H "X-Api-Key: ${API_KEY}" \
+     -d '{"who":"Mario"}'
 
-{"message":"Hello Mario and world!"}
+{"message":"Hello, Mario"}
+```
+
+Some useful tips:
+
+```bash
+# Get the API key value 
+aws apigateway get-api-key --api-key $API_KEY --include-value
 ```

@@ -16,6 +16,6 @@ new MyAwsServerlessKataStack(
   {
     "env": appConfig.env,
     "appConfig": appConfig,
-    "description": `My AWS Kata Stateful Stack for stage ${stage}`,
+    "description": `My AWS Serverless Kata Stack for stage ${stage}`,
   }
 );
