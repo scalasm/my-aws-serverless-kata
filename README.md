@@ -18,6 +18,7 @@ If you want to run the stack locally, then you will need:
 
 # Useful references
 
+- [AWS CDK Best Practices](https://docs.aws.amazon.com/cdk/v2/guide/best-practices.html)
 - [Foobar Serverless](https://www.youtube.com/@foobar_codes) has great getting started tutorials for AWS serverless architectures
 - [The Serverless Advocate](https://blog.serverlessadvocate.com/) is an awesome source for information and code with AWS Serverless architectures.
   - [Serverless Lightweight Clean Code Approach](https://blog.serverlessadvocate.com/serverless-lightweight-clean-code-approach-84133c90eeeb)
