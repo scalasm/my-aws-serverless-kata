@@ -6,15 +6,35 @@ In this application we opted for [strongly-typed configurations](https://blog.se
 The `cdk.context.json` contains the AWS region and environment you are targeting - they should be matching the values expected in ``config/**` files.
 
 # How to provide your own configuration
-Create a `cdk.context.json` file with the following configurations:
-`
-`
+Create `~/.cdk.json` file with the following configurations:
+```json
+{
+  "develop": {
+    "region": "eu-west-1", 
+    "account": "your AWS account number"
+  },
+  "staging": {
+    "region": "eu-west-1", 
+    "account": "your AWS account number"
+  },
+  "prod": {
+    "region": "eu-west-1", 
+    "account": "your AWS account number"
+  }
+}
+```
+
+(Pick the region you prefer: ensure it has been CDK-bootstrapped!)
+
+Note that I only wanted to avoid specifying AWS accounts on version control, and `~/.cdk.json` sounds like the easiest way.
 
 # Alternatives
 
+Instead of using `~/.cdk.json`, you may want to use the `cdk.context.json` or even specify context variables on the command line:
+
 Run 
 ```bash
-cdk diff -c develop='{region="us-east-1", account: "your AWS account number"}'
+cdk diff -c develop='{"region":"us-east-1", "account": "your AWS account number"}' -c staging='{"region":"eu-west-1", "account": "another AWS account number"}'
 ```
 
 # Future work

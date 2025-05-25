@@ -5,10 +5,10 @@ import { MyAwsServerlessKataStack } from "../lib/my-aws-serverless-kata-stack";
 import { getEnvironmentConfig } from "../lib/config/environment-config";
 import { getStage, Stage } from "../lib/config/types";
 
-const stage = getStage(process.env.STAGE as Stage) as Stage;
-const appConfig = getEnvironmentConfig(stage);
-
 const app = new cdk.App();
+
+const stage = getStage(process.env.STAGE as Stage) as Stage;
+const appConfig = getEnvironmentConfig(stage, app);
 
 new MyAwsServerlessKataStack(
   app,

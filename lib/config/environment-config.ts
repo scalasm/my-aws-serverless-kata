@@ -1,6 +1,12 @@
+import * as cdk from "aws-cdk-lib";
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 
 import { Region, Stage } from "@config/types";
+
+export interface AwsEnvironment {
+  account: string;
+  region: string;
+}
 
 export interface EnvironmentConfig {
   shared: {
@@ -12,10 +18,7 @@ export interface EnvironmentConfig {
       logEvent: 'true' | 'false';
     };
   };
-  env: {
-    account: string;
-    region: string;
-  };
+  env: AwsEnvironment;
   stateless: {
     runtimes: lambda.Runtime;
   };
@@ -24,7 +27,7 @@ export interface EnvironmentConfig {
   };
 }
 
-export const getEnvironmentConfig = (stage: Stage): EnvironmentConfig => {
+export const getEnvironmentConfig = (stage: Stage, app: cdk.App): EnvironmentConfig => {
   switch (stage) {
     case Stage.develop:
       return {
@@ -40,14 +43,30 @@ export const getEnvironmentConfig = (stage: Stage): EnvironmentConfig => {
         stateless: {
           runtimes: lambda.Runtime.NODEJS_20_X,
         },
-        env: {
-          account: '959713430052',
-          region: Region.dublin,
-        },
+        env: app.node.tryGetContext(Stage.develop),
         stateful: {
           tableName: `orders-table-${Stage.develop}`,
         },
       };
+    case Stage.staging:
+      return {
+        shared: {
+          logging: {
+            logLevel: 'DEBUG',
+            logEvent: 'true',
+          },
+          serviceName: `my-aws-kata-${Stage.staging}`,
+          metricNamespace: `my-aws-kata-${Stage.staging}`,
+          stage: Stage.develop,
+        },
+        stateless: {
+          runtimes: lambda.Runtime.NODEJS_20_X,
+        },
+        env: app.node.tryGetContext(Stage.staging),
+        stateful: {
+          tableName: `orders-table-${Stage.staging}`,
+        },
+      };      
     case Stage.prod:
       return {
         shared: {
@@ -62,10 +81,7 @@ export const getEnvironmentConfig = (stage: Stage): EnvironmentConfig => {
         stateless: {
           runtimes: lambda.Runtime.NODEJS_20_X,
         },
-        env: {
-          account: '321723152483',
-          region: Region.dublin,
-        },
+        env: app.node.tryGetContext(Stage.prod),
         stateful: {
           tableName: `orders-table-${Stage.prod}`,
         },
@@ -84,10 +100,7 @@ export const getEnvironmentConfig = (stage: Stage): EnvironmentConfig => {
           stateless: {
             runtimes: lambda.Runtime.NODEJS_20_X,
           },
-          env: {
-            account: '959713430052',
-            region: Region.dublin,
-          },
+          env: app.node.tryGetContext(stage) || app.node.tryGetContext(Stage.develop),
           stateful: {
             tableName: `orders-table-${stage}`,
           },
