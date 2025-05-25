@@ -255,6 +255,23 @@ ${description}
   }
 
   createEventBusSection(props: EventBusApiProps): void {
+    const description =
+      props.description || "Usage metrics for the event bus.";
+
+    this.dashboard.addWidgets(
+      new TextWidget({
+        markdown: `
+# REST API metrics 
+${description}
+
+## Metadata
+* name: ${props.eventBus.eventBusName}
+* ARN: ${props.eventBus.eventBusArn}
+`,
+        width: SIZE_FULL_WIDTH,
+        height: 4, // Increase this if you want to avoid vscrolls for long text
+      })
+    );    
     // Example: Add a simple widget for event bus metrics
     this.dashboard.addWidgets(
       new cloudwatch.GraphWidget({
