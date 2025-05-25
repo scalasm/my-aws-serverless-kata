@@ -38,7 +38,8 @@ export class StatefulStack extends cdk.NestedStack implements IObservabilityCont
       encryption: dynamodb.TableEncryption.AWS_MANAGED,
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
-      pointInTimeRecovery: false,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: true,},
       contributorInsightsEnabled: true,
       partitionKey: { name: 'PK', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'SK', type: dynamodb.AttributeType.STRING },
