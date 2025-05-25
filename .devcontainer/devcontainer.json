@@ -9,12 +9,12 @@
 			"version": "latest"
 		},
 		"ghcr.io/devcontainers-contrib/features/aws-cdk:2": {
-			"version": "2.1016.0"
+			"version": "2.1016.1"
 		},
 		"ghcr.io/customink/codespaces-features/sam-cli:1": {
 			"version": "latest"
 		},
-		"ghcr.io/joshuanianji/devcontainer-features/aws-cli-persistence:0": {},
+		"ghcr.io/joshuanianji/devcontainer-features/aws-cli-persistence:1.0.3": {},
 		"ghcr.io/tomharvey/devcontainer-features/aws-sso-util:1": {
 			"version": "latest"
 		}
@@ -27,7 +27,7 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "yarn install",
+	"postCreateCommand": ".devcontainer//post-install.sh",
 
 	// Configure tool-specific properties.
 	// "customizations": {},

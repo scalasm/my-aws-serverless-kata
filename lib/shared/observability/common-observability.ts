@@ -13,6 +13,7 @@ import {
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as ddb from "aws-cdk-lib/aws-dynamodb";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
+import * as events from 'aws-cdk-lib/aws-events';
 
 /**
  * Half horizontal screen space within a Cloudwatch dashboard space.
@@ -86,6 +87,13 @@ export interface DynamoDBTableSectionProps extends BaseSectionProps {
  */
 export interface ApiGatewayRESTApiProps extends BaseSectionProps {
   readonly restApi: apigateway.RestApi;
+}
+
+/**
+ * Configuration properties for Cloudwatch section about an Event Bus.
+ */
+export interface EventBusApiProps extends BaseSectionProps {
+  readonly eventBus: events.EventBus;
 }
 
 /**
@@ -240,6 +248,43 @@ ${description}
             period: STANDARD_RESOLUTION,
             statistic: "p99",
             label: "p99 latency",
+          }),
+        ],
+      })
+    );
+  }
+
+  createEventBusSection(props: EventBusApiProps): void {
+    const description =
+      props.description || "Usage metrics for the event bus.";
+
+    this.dashboard.addWidgets(
+      new TextWidget({
+        markdown: `
+# REST API metrics 
+${description}
+
+## Metadata
+* name: ${props.eventBus.eventBusName}
+* ARN: ${props.eventBus.eventBusArn}
+`,
+        width: SIZE_FULL_WIDTH,
+        height: 4, // Increase this if you want to avoid vscrolls for long text
+      })
+    );    
+    // Example: Add a simple widget for event bus metrics
+    this.dashboard.addWidgets(
+      new cloudwatch.GraphWidget({
+        title: `${props.descriptiveName} - Events Published`,
+        left: [
+          new cloudwatch.Metric({
+            namespace: 'AWS/Events',
+            metricName: 'PutEvents',
+            dimensionsMap: {
+              EventBusName: props.eventBus.eventBusName,
+            },
+            statistic: 'Sum',
+            period: cdk.Duration.minutes(5),
           }),
         ],
       })

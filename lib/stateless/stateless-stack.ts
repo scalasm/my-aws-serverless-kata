@@ -4,6 +4,7 @@
 
 import * as cdk from "aws-cdk-lib";
 import * as constructs from "constructs";
+import * as fs from "fs";
 import * as path from 'path';
 
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
@@ -11,14 +12,16 @@ import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambda_nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as events from 'aws-cdk-lib/aws-events';
 
-import { IObservabilityContributor, ObservabilityHelper } from "../shared/common-observability";
 import { jsonSchema } from "../shared/common-utils";
+import { IObservabilityContributor, ObservabilityHelper } from "../shared/observability";
 
 /**
  * Configuration properties for the the this Microservice.
  */
-export interface HelloWorldMicroserviceStackProps extends cdk.NestedStackProps {
+export interface StatelessStackProps extends cdk.NestedStackProps {
   /**
    * Target VPC where lambda functions and other resources will be created.
    */
@@ -28,38 +31,25 @@ export interface HelloWorldMicroserviceStackProps extends cdk.NestedStackProps {
    * Authorizer for API calls - if endpoints are to be protected, this is the authorizer to use.
    */
   readonly authorizer?: apigateway.Authorizer;
-}
 
-/**
- * (internal) Typed interface for the shared settings for the lambda functions we use in this microservice.
- */
-interface DefaultLambdaSettings {
-  vpc: cdk.aws_ec2.IVpc;
-  vpcSubnets: {
-    subnetType: cdk.aws_ec2.SubnetType;
-  };
-  runtime: cdk.aws_lambda.Runtime;
-  environment: { [key: string]: string };
-  memorySize: number,
-  // Functions are pretty quick, so this is quite conservative
-  timeout: cdk.Duration;
+  readonly ordersTable: dynamodb.Table;
+  readonly appEventBus: events.EventBus;
 }
 
 /**
  * A simple way for grouping the different response models used within this microservice stack.
  */
 interface ResponseModels {
-  readonly helloWorldResponseModel: apigateway.Model;
   readonly http404NotFoundResponseModel: apigateway.Model;
 }
 
 /**
  * Simple HelloWorld Microservice stack that expose a simple function in the most complicated way XD.
  */
-export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObservabilityContributor {
+export class StatelessStack extends cdk.NestedStack implements IObservabilityContributor {
   private readonly helloWorldResource: apigateway.Resource;
 
-  private readonly defaultFunctionSettings: DefaultLambdaSettings;
+  private readonly defaultFunctionSettings: any;
 
   private readonly helloWorldFunction: lambda.IFunction;
 
@@ -67,8 +57,19 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
 
   private readonly responseModels: ResponseModels;
 
-  constructor(scope: constructs.Construct, id: string, props: HelloWorldMicroserviceStackProps) {
+  constructor(scope: constructs.Construct, id: string, props: StatelessStackProps) {
     super(scope, id, props);
+
+    const lambdaPowerToolsConfig = {
+      LOG_LEVEL: 'DEBUG',
+      POWERTOOLS_LOGGER_LOG_EVENT: 'true',
+      POWERTOOLS_LOGGER_SAMPLE_RATE: '1',
+      POWERTOOLS_TRACE_ENABLED: 'enabled',
+      POWERTOOLS_TRACER_CAPTURE_HTTPS_REQUESTS: 'captureHTTPsRequests',
+      POWERTOOLS_SERVICE_NAME: 'HelloService',
+      POWERTOOLS_TRACER_CAPTURE_RESPONSE: 'captureResult',
+      POWERTOOLS_METRICS_NAMESPACE: 'MyAWSKata',
+    };
 
     // All lambda functions are Python 3.9-based and will be hosted in in private subnets inside target VPC.
     this.defaultFunctionSettings = {
@@ -80,22 +81,25 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
       memorySize: 256,
       // Functions are pretty quick, so this is quite conservative
       timeout: cdk.Duration.seconds(5),
+      tracing: lambda.Tracing.ACTIVE,
+      handler: 'handler',
+      bundling: {
+        minify: true,
+        externalModules: ['aws-sdk'],
+      },
       environment: {
-        POWERTOOLS_SERVICE_NAME: "hello-world",
-        POWERTOOLS_LOGGER_LOG_EVENT: "true",
-        LOG_LEVEL: "INFO",
+        ...lambdaPowerToolsConfig
       }
     };
 
-    this.restApi = this.buildRestApi();
-
+    this.restApi = this.buildRestApi(props);
     this.responseModels = this.initializeSharedResponseModels(props);
 
     this.helloWorldResource = this.restApi.root.addResource("helloworld");
     this.helloWorldFunction = this.bindHelloWorldFunction(props);
   }
 
-  private buildRestApi(): apigateway.RestApi {
+  private buildRestApi(props: StatelessStackProps): apigateway.RestApi {
     const api = new apigateway.RestApi(this, "api", {
       restApiName: "Hellow World - REST API",
       description: "Hellow World - REST API",
@@ -151,18 +155,7 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
     });
   }
 
-  private initializeSharedResponseModels(props: HelloWorldMicroserviceStackProps): ResponseModels {
-    const helloWorldResponseModel = this.restApi.addModel(
-      "HelloWorldResponseModel",
-      jsonSchema({
-        modelName: "HelloWorldResponseModel",
-        properties: {
-          message: { type: apigateway.JsonSchemaType.STRING }
-        },
-        requiredProperties: ["message"],
-      })
-    );
-
+  private initializeSharedResponseModels(props: StatelessStackProps): ResponseModels {
     const http404NotFoundResponseModel = this.restApi.addModel(
       "Http404ResponseModel",
       jsonSchema({
@@ -175,40 +168,78 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
     );
 
     return {
-      helloWorldResponseModel: helloWorldResponseModel,
       http404NotFoundResponseModel,
     };
   }
 
-  private bindHelloWorldFunction(props: HelloWorldMicroserviceStackProps): lambda.Function {
+  private bindHelloWorldFunction(props: StatelessStackProps): lambda.Function {
     const helloWorldFunction = new lambda_nodejs.NodejsFunction(this, 'hello-world-function', {
       ...this.defaultFunctionSettings,
-      handler: 'main',
-      entry: path.join(__dirname, `./handlers/hello-world.ts`),
+      POWERTOOLS_SERVICE_NAME: 'SayHelloWorldLambda',
+      handler: 'handler',
+      entry: path.join(__dirname, `./adapters/primary/say-hello-world.adapter.ts`),
     });
 
-    // POST /u
-    const requestModel = this.restApi.addModel(
-      "HelloWorldRequestModel",
-      jsonSchema({
-        modelName: "HelloWorldRequestModel",
-        properties: {
-          name: { type: apigateway.JsonSchemaType.STRING },
-        },
-        requiredProperties: ["name"],
-      })
+    props.ordersTable.grantReadWriteData(helloWorldFunction);
+    props.appEventBus.grantPutEventsTo(helloWorldFunction);
+
+    this.setUpRequestResponseModels(
+      this.helloWorldResource, // target REST API resource
+      "SayHelloWorld", // operation name
+      "POST", // HTTP method
+      "./adapters/primary/say-hello-world.request.schema.json", // request schema
+      "./adapters/primary/say-hello-world.response.schema.json", // response schema
+      new apigateway.LambdaIntegration(helloWorldFunction, { proxy: true }), // integration
+      {
+        authorizationType: apigateway.AuthorizationType.NONE,
+        authorizer: props.authorizer,
+      } // method options
     );
 
-    const requestValidator = new apigateway.RequestValidator(this, "HelloWorldRequestValidator", {
+    return helloWorldFunction;
+  }
+
+  private setUpRequestResponseModels(targetResource: apigateway.Resource, 
+    operationName: string, httpVerb: string, requestJsonSchemaPath: string, responseJsonSchemaPath: string,
+    integration: apigateway.Integration, methodOptions: apigateway.MethodOptions): any {
+    
+    const requestSchema = JSON.parse(
+      fs.readFileSync(
+        path.join(__dirname, requestJsonSchemaPath),
+        "utf8"
+      )
+    );
+    const requestModel = this.restApi.addModel(
+      `${operationName}RequestModel`, {
+        modelName: `${operationName}RequestModel`,
+        contentType: "application/json",
+        schema: requestSchema,
+      }
+    );
+
+    const responseSchema = JSON.parse(
+      fs.readFileSync(
+        path.join(__dirname, responseJsonSchemaPath),
+        "utf8"
+      )
+    );
+    const responseModel = this.restApi.addModel(
+      `${operationName}ResponseModel`, {
+        modelName: `${operationName}ResponseModel`,
+        contentType: "application/json",
+        schema: responseSchema,
+      }
+    );
+
+    const requestValidator = new apigateway.RequestValidator(this, `${operationName}RequestValidator`, {
       restApi: this.restApi,
-      requestValidatorName: "Validate Payload and parameters",
+      requestValidatorName: `Validate Payload and parameters for ${operationName}`,
       validateRequestBody: true,
       validateRequestParameters: true,
     });
 
-    this.helloWorldResource.addMethod("POST", new apigateway.LambdaIntegration(helloWorldFunction, { proxy: true }), {
-      authorizationType: apigateway.AuthorizationType.NONE,
-//      authorizer: props.authorizer,
+    targetResource.addMethod(httpVerb, integration, {
+      ...methodOptions,
 
       requestModels: {
         "application/json": requestModel,
@@ -218,12 +249,10 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
         {
           statusCode: "200",
           responseModels: {
-            "application/json": this.responseModels.helloWorldResponseModel,
+            "application/json": responseModel,
           },
         },
       ],
     });
-
-    return helloWorldFunction;
   }
 }

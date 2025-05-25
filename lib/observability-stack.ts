@@ -9,7 +9,7 @@ import {
   IObservabilityContributor,
   STANDARD_RESOLUTION,
   SIZE_FULL_WIDTH,
-} from "./shared/common-observability";
+} from "@shared/observability";
 
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 
@@ -21,6 +21,8 @@ interface ObservabilityStackProps extends cdk.NestedStackProps {
    * A prefix that will be used to name internally creasted resources.
    */
   readonly dashboardName: string;
+
+  readonly contributors: IObservabilityContributor[]
 }
 
 /**
@@ -56,20 +58,7 @@ Here you can see all the metrics for the stack resources. These includes all the
       })
     );
 
-    // Note: sections are contributed by microservices implementing IObservabilityContributor
-
-
-  }
-
-  /**
-   * Process the specified list of widgets contributors, allowing them to append widgets to the dahboard.
-   *
-   * @param contributors widgets contributors for the Cloudwatch dashboard.
-   */
-  hookDashboardContributions(contributors: IObservabilityContributor[]): void {
-    if (!contributors) return;
-
-    contributors.forEach((contributor) =>
+    props.contributors.forEach((contributor) =>
       contributor.contributeWidgets(this.dashboard)
     );
   }

@@ -7,8 +7,9 @@ import { Construct } from "constructs";
 
 import { NetworkStack } from "./network-stack";
 import { ObservabilityStack } from "./observability-stack";
-import { OrdersMicroserviceStack } from "./orders/microservice-stack";
-import { HelloWorldMicroserviceStack } from "./hello-world/microservice-stack";
+import { StatelessStack } from "./stateless/stateless-stack";
+import { EnvironmentConfig } from "./config/environment-config";
+import { StatefulStack } from "./stateful/stateful-stack";
 
 /**
  * Configuration properties.
@@ -17,7 +18,7 @@ export interface MyAwsServerlessKataStackProps extends cdk.StackProps {
   /**
    * Stage name for the stack (e.g., "dev", "prod", ...)
    */
-  readonly stage: string;
+  readonly appConfig: EnvironmentConfig;
 }
 
 /**
@@ -28,28 +29,30 @@ export class MyAwsServerlessKataStack extends cdk.Stack {
   constructor(
     scope: Construct,
     id: string,
-    props?: MyAwsServerlessKataStackProps
+    props: MyAwsServerlessKataStackProps
   ) {
     super(scope, id, props);
 
     const networkStack = new NetworkStack(this, "network");
 
-    // The code that defines your stack goes here
-
-    const observableStacks = [
-      new HelloWorldMicroserviceStack(this, "helloworld-microservice", {
-        vpc: networkStack.vpc,
-        authorizer: undefined,
-      }),
-      new OrdersMicroserviceStack(this, "orders-microservice", {
-        vpc: networkStack.vpc,
-        authorizer: undefined,
-      }),
-    ];
-
-    const observabilityStack = new ObservabilityStack(this, "observability", {
-      dashboardName: `My AWS Kata (${props?.stage})`
+    const statefulStack = new StatefulStack(this, "stateful", {
+        appConfig: props.appConfig
     });
-    observabilityStack.hookDashboardContributions(observableStacks);
+
+    const statelessStack =new StatelessStack(this, "stateless", {
+      vpc: networkStack.vpc,
+      authorizer: undefined,
+      ordersTable: statefulStack.ordersTable,
+      appEventBus: statefulStack.appEventBus,
+    });
+
+    new ObservabilityStack(this, "observability", {
+      dashboardName: `My AWS Kata (${props?.appConfig.shared.stage})`,
+      contributors: [
+        statelessStack,
+        statefulStack,
+      ],
+    });
   }
 }
+  
