@@ -12,7 +12,7 @@ const app = new cdk.App();
 
 new MyAwsServerlessKataStack(
   app,
-  'MyAwsKataStatefulStack',
+  'MyAwsKataServerlessStack',
   {
     "env": appConfig.env,
     "appConfig": appConfig,
