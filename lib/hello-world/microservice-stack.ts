@@ -2,6 +2,7 @@
 // This file is licensed under the MIT License.
 // License text available at https://opensource.org/licenses/MIT
 
+import * as fs from "fs";
 import * as cdk from "aws-cdk-lib";
 import * as constructs from "constructs";
 import * as path from 'path';
@@ -174,38 +175,63 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
       entry: path.join(__dirname, `./adapters/primary/say-hello-world.adapter.ts`),
     });
 
+    this.setUpRequestResponseModels(
+      this.helloWorldResource, // target REST API resource
+      "SayHelloWorld", // operation name
+      "POST", // HTTP method
+      "./adapters/primary/say-hello-world.request.schema.json", // request schema
+      "./adapters/primary/say-hello-world.response.schema.json", // response schema
+      new apigateway.LambdaIntegration(helloWorldFunction, { proxy: true }), // integration
+      {
+        authorizationType: apigateway.AuthorizationType.NONE,
+        authorizer: props.authorizer,
+      } // method options
+    );
+
+    return helloWorldFunction;
+  }
+
+  private setUpRequestResponseModels(targetResource: apigateway.Resource, 
+    operationName: string, httpVerb: string, requestJsonSchemaPath: string, responseJsonSchemaPath: string,
+    integration: apigateway.Integration, methodOptions: apigateway.MethodOptions): any {
+    
+    const requestSchema = JSON.parse(
+      fs.readFileSync(
+        path.join(__dirname, requestJsonSchemaPath),
+        "utf8"
+      )
+    );
     const requestModel = this.restApi.addModel(
-      "SayHelloWorldRequestModel",
-      jsonSchema({
-        modelName: "SayHelloWorldRequestModel",
-        properties: {
-          who: { type: apigateway.JsonSchemaType.STRING },
-        },
-        requiredProperties: ["who"],
-      })
+      `${operationName}RequestModel`, {
+        modelName: `${operationName}RequestModel`,
+        contentType: "application/json",
+        schema: requestSchema,
+      }
     );
 
+    const responseSchema = JSON.parse(
+      fs.readFileSync(
+        path.join(__dirname, responseJsonSchemaPath),
+        "utf8"
+      )
+    );
     const responseModel = this.restApi.addModel(
-      "SayHelloWorldResponseModel",
-      jsonSchema({
-        modelName: "SayHelloWorldResponseModel",
-        properties: {
-          message: { type: apigateway.JsonSchemaType.STRING }
-        },
-        requiredProperties: ["message"],
-      })
+      `${operationName}ResponseModel`, {
+        modelName: `${operationName}ResponseModel`,
+        contentType: "application/json",
+        schema: requestSchema,
+      }
     );
 
-    const requestValidator = new apigateway.RequestValidator(this, "HelloWorldRequestValidator", {
+    const requestValidator = new apigateway.RequestValidator(this, `${operationName}RequestValidator`, {
       restApi: this.restApi,
-      requestValidatorName: "Validate Payload and parameters",
+      requestValidatorName: `Validate Payload and parameters for ${operationName}`,
       validateRequestBody: true,
       validateRequestParameters: true,
     });
 
-    this.helloWorldResource.addMethod("POST", new apigateway.LambdaIntegration(helloWorldFunction, { proxy: true }), {
-      authorizationType: apigateway.AuthorizationType.NONE,
-//      authorizer: props.authorizer,
+    targetResource.addMethod(httpVerb, integration, {
+      ...methodOptions,
 
       requestModels: {
         "application/json": requestModel,
@@ -220,7 +246,7 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
         },
       ],
     });
-
-    return helloWorldFunction;
   }
 }
+
+

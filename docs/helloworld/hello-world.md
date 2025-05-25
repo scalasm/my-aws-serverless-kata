@@ -24,8 +24,12 @@ curl -X POST $API_URL/helloworld \
 ```
 
 Some useful tips:
-
 ```bash
+# Find the API Key id - we will query its value later on
+export API_KEY_ID=$(aws cloudformation list-stack-resources --stack-name <Your stack name> \
+  --query "StackResourceSummaries[?ResourceType=='AWS::ApiGateway::ApiKey'].PhysicalResourceId" \
+  --output text)
+
 # Get the API key value 
-aws apigateway get-api-key --api-key $API_KEY --include-value
+export API_KEY=$(aws apigateway get-api-key --api-key $API_KEY_ID --include-value --query 'value' --output text)
 ```
