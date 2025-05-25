@@ -25,7 +25,7 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@hello-world/*": ["./lib/hello-world/*"],
+      "@hello-world/*": ["./lib/stateless/*"],
       "@config/*": ["./lib/config/*"],
       "@shared/*": ["./lib/shared/*"],
       "@common-utils/*": ["./lib/shared/util/*"],

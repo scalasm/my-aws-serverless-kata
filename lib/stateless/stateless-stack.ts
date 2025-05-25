@@ -2,9 +2,9 @@
 // This file is licensed under the MIT License.
 // License text available at https://opensource.org/licenses/MIT
 
-import * as fs from "fs";
 import * as cdk from "aws-cdk-lib";
 import * as constructs from "constructs";
+import * as fs from "fs";
 import * as path from 'path';
 
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
@@ -12,14 +12,16 @@ import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambda_nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as events from 'aws-cdk-lib/aws-events';
 
-import { IObservabilityContributor, ObservabilityHelper } from "../shared/observability";
 import { jsonSchema } from "../shared/common-utils";
+import { IObservabilityContributor, ObservabilityHelper } from "../shared/observability";
 
 /**
  * Configuration properties for the the this Microservice.
  */
-export interface HelloWorldMicroserviceStackProps extends cdk.NestedStackProps {
+export interface StatelessStackProps extends cdk.NestedStackProps {
   /**
    * Target VPC where lambda functions and other resources will be created.
    */
@@ -29,6 +31,9 @@ export interface HelloWorldMicroserviceStackProps extends cdk.NestedStackProps {
    * Authorizer for API calls - if endpoints are to be protected, this is the authorizer to use.
    */
   readonly authorizer?: apigateway.Authorizer;
+
+  readonly ordersTable: dynamodb.Table;
+  readonly appEventBus: events.EventBus;
 }
 
 /**
@@ -41,7 +46,7 @@ interface ResponseModels {
 /**
  * Simple HelloWorld Microservice stack that expose a simple function in the most complicated way XD.
  */
-export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObservabilityContributor {
+export class StatelessStack extends cdk.NestedStack implements IObservabilityContributor {
   private readonly helloWorldResource: apigateway.Resource;
 
   private readonly defaultFunctionSettings: any;
@@ -52,7 +57,7 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
 
   private readonly responseModels: ResponseModels;
 
-  constructor(scope: constructs.Construct, id: string, props: HelloWorldMicroserviceStackProps) {
+  constructor(scope: constructs.Construct, id: string, props: StatelessStackProps) {
     super(scope, id, props);
 
     const lambdaPowerToolsConfig = {
@@ -94,7 +99,7 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
     this.helloWorldFunction = this.bindHelloWorldFunction(props);
   }
 
-  private buildRestApi(props: HelloWorldMicroserviceStackProps): apigateway.RestApi {
+  private buildRestApi(props: StatelessStackProps): apigateway.RestApi {
     const api = new apigateway.RestApi(this, "api", {
       restApiName: "Hellow World - REST API",
       description: "Hellow World - REST API",
@@ -150,7 +155,7 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
     });
   }
 
-  private initializeSharedResponseModels(props: HelloWorldMicroserviceStackProps): ResponseModels {
+  private initializeSharedResponseModels(props: StatelessStackProps): ResponseModels {
     const http404NotFoundResponseModel = this.restApi.addModel(
       "Http404ResponseModel",
       jsonSchema({
@@ -167,13 +172,16 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
     };
   }
 
-  private bindHelloWorldFunction(props: HelloWorldMicroserviceStackProps): lambda.Function {
+  private bindHelloWorldFunction(props: StatelessStackProps): lambda.Function {
     const helloWorldFunction = new lambda_nodejs.NodejsFunction(this, 'hello-world-function', {
       ...this.defaultFunctionSettings,
       POWERTOOLS_SERVICE_NAME: 'SayHelloWorldLambda',
       handler: 'handler',
       entry: path.join(__dirname, `./adapters/primary/say-hello-world.adapter.ts`),
     });
+
+    props.ordersTable.grantReadWriteData(helloWorldFunction);
+    props.appEventBus.grantPutEventsTo(helloWorldFunction);
 
     this.setUpRequestResponseModels(
       this.helloWorldResource, // target REST API resource
@@ -219,7 +227,7 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
       `${operationName}ResponseModel`, {
         modelName: `${operationName}ResponseModel`,
         contentType: "application/json",
-        schema: requestSchema,
+        schema: responseSchema,
       }
     );
 
@@ -248,5 +256,3 @@ export class HelloWorldMicroserviceStack extends cdk.NestedStack implements IObs
     });
   }
 }
-
-
