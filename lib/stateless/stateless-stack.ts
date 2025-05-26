@@ -15,7 +15,6 @@ import * as lambda_nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as events from 'aws-cdk-lib/aws-events';
 
-import { jsonSchema } from "../shared/common-utils";
 import { IObservabilityContributor, ObservabilityHelper } from "../shared/observability";
 
 /**
@@ -156,16 +155,8 @@ export class StatelessStack extends cdk.NestedStack implements IObservabilityCon
   }
 
   private initializeSharedResponseModels(props: StatelessStackProps): ResponseModels {
-    const http404NotFoundResponseModel = this.restApi.addModel(
-      "Http404ResponseModel",
-      jsonSchema({
-        modelName: "Http404ResponseModel",
-        properties: {
-          message: { type: apigateway.JsonSchemaType.STRING },
-        },
-        requiredProperties: ["message"],
-      })
-    );
+    const http404NotFoundResponseModel = this.createModelFromJsonSchemaFile(
+      "./adapters/primary/resource-not-found.response.schema.json", "Http404Response");
 
     return {
       http404NotFoundResponseModel,
@@ -203,33 +194,8 @@ export class StatelessStack extends cdk.NestedStack implements IObservabilityCon
     operationName: string, httpVerb: string, requestJsonSchemaPath: string, responseJsonSchemaPath: string,
     integration: apigateway.Integration, methodOptions: apigateway.MethodOptions): any {
     
-    const requestSchema = JSON.parse(
-      fs.readFileSync(
-        path.join(__dirname, requestJsonSchemaPath),
-        "utf8"
-      )
-    );
-    const requestModel = this.restApi.addModel(
-      `${operationName}RequestModel`, {
-        modelName: `${operationName}RequestModel`,
-        contentType: "application/json",
-        schema: requestSchema,
-      }
-    );
-
-    const responseSchema = JSON.parse(
-      fs.readFileSync(
-        path.join(__dirname, responseJsonSchemaPath),
-        "utf8"
-      )
-    );
-    const responseModel = this.restApi.addModel(
-      `${operationName}ResponseModel`, {
-        modelName: `${operationName}ResponseModel`,
-        contentType: "application/json",
-        schema: responseSchema,
-      }
-    );
+    const requestModel = this.createModelFromJsonSchemaFile(requestJsonSchemaPath, `${operationName}Request`);
+    const responseModel = this.createModelFromJsonSchemaFile(responseJsonSchemaPath, `${operationName}Response`);
 
     const requestValidator = new apigateway.RequestValidator(this, `${operationName}RequestValidator`, {
       restApi: this.restApi,
@@ -254,5 +220,22 @@ export class StatelessStack extends cdk.NestedStack implements IObservabilityCon
         },
       ],
     });
+  }
+
+  private createModelFromJsonSchemaFile(responseJsonSchemaPath: string, modelName: string) {
+    const responseSchema = JSON.parse(
+      fs.readFileSync(
+        path.join(__dirname, responseJsonSchemaPath),
+        "utf8"
+      )
+    );
+    const responseModel = this.restApi.addModel(
+      `${modelName}Model`, {
+      modelName: `${modelName}Model`,
+      contentType: "application/json",
+      schema: responseSchema,
+    }
+    );
+    return responseModel;
   }
 }

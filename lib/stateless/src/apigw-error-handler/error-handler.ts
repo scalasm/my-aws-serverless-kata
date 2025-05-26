@@ -33,6 +33,8 @@ export function errorHandler(logger: Logger, error: Error | unknown): APIGateway
 
   return {
     statusCode: statusCode,
-    body: JSON.stringify(errorMessage),
+    body: JSON.stringify({ // Matches the resource-not-found response model
+      message: errorMessage,
+    }),
   };
 }

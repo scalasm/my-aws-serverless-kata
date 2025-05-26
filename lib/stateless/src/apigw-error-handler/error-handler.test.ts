@@ -1,4 +1,4 @@
-import { ValidationError } from '@shared/errors/validation-error';
+import { ValidationError } from '@hello-world/src/errors/validation-error';
 import { errorHandler } from './error-handler';
 import { Logger } from '@aws-lambda-powertools/logger';
 
@@ -14,7 +14,7 @@ describe('error-handler', () => {
     // act / assert
     expect(errorHandler(mockLogger, error)).toMatchInlineSnapshot(`
 Object {
-  "body": "\\"An error has occurred\\"",
+  "body": "{\\message\\":\\"An error has occurred\\"}",
   "statusCode": 500,
 }
 `);
@@ -27,7 +27,7 @@ Object {
     // act / assert
     expect(errorHandler(mockLogger, error)).toMatchInlineSnapshot(`
 Object {
-  "body": "\\"An error has occurred\\"",
+  "body": "{\\message\\":\\"An error has occurred\\"}",
   "statusCode": 500,
 }
 `);
@@ -40,7 +40,7 @@ Object {
     // act / assert
     expect(errorHandler(mockLogger, error)).toMatchInlineSnapshot(`
 Object {
-  "body": "\\"this is a validation error\\"",
+  "body": "{\\message\\":\\"this is a validation error\\"}",
   "statusCode": 400,
 }
 `);
