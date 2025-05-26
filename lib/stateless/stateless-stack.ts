@@ -42,6 +42,9 @@ interface ResponseModels {
   readonly http404NotFoundResponseModel: apigateway.Model;
 }
 
+// Define a constant for the adapters/primary directory
+const PRIMARY_ADAPTERS = "./src/adapters/primary";
+
 /**
  * Simple HelloWorld Microservice stack that expose a simple function in the most complicated way XD.
  */
@@ -156,7 +159,7 @@ export class StatelessStack extends cdk.NestedStack implements IObservabilityCon
 
   private initializeSharedResponseModels(props: StatelessStackProps): ResponseModels {
     const http404NotFoundResponseModel = this.createModelFromJsonSchemaFile(
-      "./adapters/primary/resource-not-found.response.schema.json", "Http404Response");
+      path.join(PRIMARY_ADAPTERS, "resource-not-found.response.schema.json"), "Http404Response");
 
     return {
       http404NotFoundResponseModel,
@@ -168,7 +171,7 @@ export class StatelessStack extends cdk.NestedStack implements IObservabilityCon
       ...this.defaultFunctionSettings,
       POWERTOOLS_SERVICE_NAME: 'SayHelloWorldLambda',
       handler: 'handler',
-      entry: path.join(__dirname, `./adapters/primary/say-hello-world.adapter.ts`),
+      entry: path.join(__dirname, `${PRIMARY_ADAPTERS}/say-hello-world.adapter.ts`),
     });
 
     props.ordersTable.grantReadWriteData(helloWorldFunction);
@@ -178,8 +181,8 @@ export class StatelessStack extends cdk.NestedStack implements IObservabilityCon
       this.helloWorldResource, // target REST API resource
       "SayHelloWorld", // operation name
       "POST", // HTTP method
-      "./adapters/primary/say-hello-world.request.schema.json", // request schema
-      "./adapters/primary/say-hello-world.response.schema.json", // response schema
+      path.join(PRIMARY_ADAPTERS, "say-hello-world.request.schema.json"), // request schema
+      path.join(PRIMARY_ADAPTERS, "say-hello-world.response.schema.json"), // response schema
       new apigateway.LambdaIntegration(helloWorldFunction, { proxy: true }), // integration
       {
         authorizationType: apigateway.AuthorizationType.NONE,
