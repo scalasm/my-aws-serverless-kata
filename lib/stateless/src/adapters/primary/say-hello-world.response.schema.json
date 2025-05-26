@@ -8,6 +8,6 @@
     }
   },
   "required": [
-    "who"
+    "message"
   ]
 }

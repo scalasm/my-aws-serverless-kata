@@ -15,7 +15,6 @@ import * as lambda_nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as events from 'aws-cdk-lib/aws-events';
 
-import { jsonSchema } from "../shared/common-utils";
 import { IObservabilityContributor, ObservabilityHelper } from "../shared/observability";
 
 /**
@@ -42,6 +41,9 @@ export interface StatelessStackProps extends cdk.NestedStackProps {
 interface ResponseModels {
   readonly http404NotFoundResponseModel: apigateway.Model;
 }
+
+// Define a constant for the adapters/primary directory
+const PRIMARY_ADAPTERS = "./src/adapters/primary";
 
 /**
  * Simple HelloWorld Microservice stack that expose a simple function in the most complicated way XD.
@@ -156,16 +158,8 @@ export class StatelessStack extends cdk.NestedStack implements IObservabilityCon
   }
 
   private initializeSharedResponseModels(props: StatelessStackProps): ResponseModels {
-    const http404NotFoundResponseModel = this.restApi.addModel(
-      "Http404ResponseModel",
-      jsonSchema({
-        modelName: "Http404ResponseModel",
-        properties: {
-          message: { type: apigateway.JsonSchemaType.STRING },
-        },
-        requiredProperties: ["message"],
-      })
-    );
+    const http404NotFoundResponseModel = this.createModelFromJsonSchemaFile(
+      path.join(PRIMARY_ADAPTERS, "resource-not-found.response.schema.json"), "Http404Response");
 
     return {
       http404NotFoundResponseModel,
@@ -177,7 +171,7 @@ export class StatelessStack extends cdk.NestedStack implements IObservabilityCon
       ...this.defaultFunctionSettings,
       POWERTOOLS_SERVICE_NAME: 'SayHelloWorldLambda',
       handler: 'handler',
-      entry: path.join(__dirname, `./adapters/primary/say-hello-world.adapter.ts`),
+      entry: path.join(__dirname, `${PRIMARY_ADAPTERS}/say-hello-world.adapter.ts`),
     });
 
     props.ordersTable.grantReadWriteData(helloWorldFunction);
@@ -187,8 +181,8 @@ export class StatelessStack extends cdk.NestedStack implements IObservabilityCon
       this.helloWorldResource, // target REST API resource
       "SayHelloWorld", // operation name
       "POST", // HTTP method
-      "./adapters/primary/say-hello-world.request.schema.json", // request schema
-      "./adapters/primary/say-hello-world.response.schema.json", // response schema
+      path.join(PRIMARY_ADAPTERS, "say-hello-world.request.schema.json"), // request schema
+      path.join(PRIMARY_ADAPTERS, "say-hello-world.response.schema.json"), // response schema
       new apigateway.LambdaIntegration(helloWorldFunction, { proxy: true }), // integration
       {
         authorizationType: apigateway.AuthorizationType.NONE,
@@ -203,33 +197,8 @@ export class StatelessStack extends cdk.NestedStack implements IObservabilityCon
     operationName: string, httpVerb: string, requestJsonSchemaPath: string, responseJsonSchemaPath: string,
     integration: apigateway.Integration, methodOptions: apigateway.MethodOptions): any {
     
-    const requestSchema = JSON.parse(
-      fs.readFileSync(
-        path.join(__dirname, requestJsonSchemaPath),
-        "utf8"
-      )
-    );
-    const requestModel = this.restApi.addModel(
-      `${operationName}RequestModel`, {
-        modelName: `${operationName}RequestModel`,
-        contentType: "application/json",
-        schema: requestSchema,
-      }
-    );
-
-    const responseSchema = JSON.parse(
-      fs.readFileSync(
-        path.join(__dirname, responseJsonSchemaPath),
-        "utf8"
-      )
-    );
-    const responseModel = this.restApi.addModel(
-      `${operationName}ResponseModel`, {
-        modelName: `${operationName}ResponseModel`,
-        contentType: "application/json",
-        schema: responseSchema,
-      }
-    );
+    const requestModel = this.createModelFromJsonSchemaFile(requestJsonSchemaPath, `${operationName}Request`);
+    const responseModel = this.createModelFromJsonSchemaFile(responseJsonSchemaPath, `${operationName}Response`);
 
     const requestValidator = new apigateway.RequestValidator(this, `${operationName}RequestValidator`, {
       restApi: this.restApi,
@@ -254,5 +223,22 @@ export class StatelessStack extends cdk.NestedStack implements IObservabilityCon
         },
       ],
     });
+  }
+
+  private createModelFromJsonSchemaFile(responseJsonSchemaPath: string, modelName: string) {
+    const responseSchema = JSON.parse(
+      fs.readFileSync(
+        path.join(__dirname, responseJsonSchemaPath),
+        "utf8"
+      )
+    );
+    const responseModel = this.restApi.addModel(
+      `${modelName}Model`, {
+      modelName: `${modelName}Model`,
+      contentType: "application/json",
+      schema: responseSchema,
+    }
+    );
+    return responseModel;
   }
 }

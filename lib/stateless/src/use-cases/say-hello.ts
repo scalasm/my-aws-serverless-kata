@@ -1,4 +1,4 @@
-import { HelloRequeestDto, HelloResponseDto } from "@hello-world/dto";
+import { HelloRequeestDto, HelloResponseDto } from "@hello-world/src/dto";
 
 export async function sayHelloUseCase(
   hello: HelloRequeestDto

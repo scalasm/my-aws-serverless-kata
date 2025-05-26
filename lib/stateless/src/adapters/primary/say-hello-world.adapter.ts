@@ -10,13 +10,13 @@ import { injectLambdaContext } from '@aws-lambda-powertools/logger/middleware';
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import middy from '@middy/core';
 
-import { ValidationError } from '@shared/errors/validation-error';
-import { errorHandler as handleError } from '@shared/apigw-error-handler';
-import { schemaValidator } from '@shared/schema-validator';
+import { ValidationError } from '@hello-world/src/errors/validation-error';
+import { errorHandler as handleError } from '@hello-world/src/apigw-error-handler';
+import { schemaValidator } from '@hello-world/src/schema-validator';
 
-import { HelloRequeestDto as HelloRequestDto, HelloResponseDto } from '@hello-world/dto';
-import { sayHelloUseCase } from '@hello-world/use-cases';
-import { schema } from '@hello-world/adapters/primary/say-hello-world.schema';
+import { HelloRequeestDto as HelloRequestDto, HelloResponseDto } from '@hello-world/src/dto';
+import { sayHelloUseCase } from '@hello-world/src/use-cases';
+import { schema } from '@hello-world/src/adapters/primary/say-hello-world.schema';
 
 // Logger parameters fetched from the environment variables:
 const logger = new Logger();
